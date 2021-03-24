@@ -42,17 +42,22 @@ def checkPrime(number):
 		return True
 	return False
 
-def threadFunc(calculator, input):
+def threadFunc(name, calculator, input):
+	print("Thread " + str(name) + " start")
 	for i in range(input[0], input[1] + 1):
 		calculator.calculateRemainder(i)
+	print("Thread " + str(name) + " end")
 
 class RemainerCalculator:
 	def __init__(self, number, value):
 		self.number = number
 		self.value  = value
+		self.mutex  = threading.Lock()
 
 	def calculateRemainder(self, value):
+		self.mutex.acquire()
 		self.value = (self.value * value) % self.number
+		self.mutex.release()
 
 	def remainder(self):
 		return self.value
@@ -65,7 +70,7 @@ class ThreadManager:
 	def run(self):
 		threads = []
 		for index, input in enumerate(self.threadInputs):
-			thread = threading.Thread(target=threadFunc, name=index, args=(self.remainderCalculator, input))
+			thread = threading.Thread(target=threadFunc, name=index, args=(index, self.remainderCalculator, input))
 			threads.append(thread)
 			thread.start()
 		for thread in threads:
