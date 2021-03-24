@@ -1,5 +1,6 @@
 import math
 import threading
+import time
 
 FILES = [
 	"primes-real.txt",
@@ -7,6 +8,11 @@ FILES = [
 ]
 COMMENT_CHARACTER = "#"
 NUMBER_OF_THREADS = 4
+
+def measureRunningTime(func):
+	startTime = time.time()
+	func()
+	return time.time() - startTime
 
 def splitUp(numberOfThreads, number):
 	if number < 2 * numberOfThreads:
@@ -43,10 +49,10 @@ def checkPrime(number):
 	return False
 
 def threadFunc(name, calculator, input):
-	print("Thread " + str(name) + " start")
+	print("- Thread " + str(name) + " start")
 	for i in range(input[0], input[1] + 1):
 		calculator.calculateRemainder(i)
-	print("Thread " + str(name) + " end")
+	print("- Thread " + str(name) + " end")
 
 class RemainerCalculator:
 	def __init__(self, number, value):
@@ -67,7 +73,7 @@ class ThreadManager:
 		self.threadInputs = threadInputs
 		self.remainderCalculator = remainderCalculator
 
-	def run(self):
+	def __run__(self):
 		threads = []
 		for index, input in enumerate(self.threadInputs):
 			thread = threading.Thread(target=threadFunc, name=index, args=(index, self.remainderCalculator, input))
@@ -76,10 +82,12 @@ class ThreadManager:
 		for thread in threads:
 			thread.join()
 
+	def run(self):
+		runningTime = measureRunningTime(self.__run__)
+		print("- RUNNING TIME: %s seconds" % runningTime)
+
 if __name__ == "__main__":
 	numbers = getNumbersFromFiles()
 	for number in numbers:
-		if checkPrime(number):
-			print("RESULT: " + str(number) + " is a prime number")
-		else:
-			print("RESULT: " + str(number) + " is not a prime number")
+		print("Number: " + str(number))
+		print("- RESULT: " + str(checkPrime(number)))
