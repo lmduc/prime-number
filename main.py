@@ -7,7 +7,7 @@ FILES = [
 	"primes-fake.txt",
 ]
 COMMENT_CHARACTER = "#"
-NUMBER_OF_THREADS = 4
+NUMBER_OF_THREADS = 2
 
 def measureRunningTime(func):
 	startTime = time.time()
@@ -35,23 +35,12 @@ def getNumbersFromFiles():
 		f.close()
 	return numbers
 
-def checkPrime(number):
-	if number == 1:
-		return False
-
-	threadInputs = splitUp(NUMBER_OF_THREADS, number)
-	calculator   = RemainerCalculator(number, 1)
-	tm           = ThreadManager(threadInputs, calculator)
-	tm.run()
-
-	if calculator.remainder() == number - 1:
-		return True
-	return False
-
-def threadFunc(name, calculator, input):
+def threadFunc(name, number, calculator, input):
 	print("- Thread " + str(name) + " start")
+	remainder = 1
 	for i in range(input[0], input[1] + 1):
-		calculator.calculateRemainder(i)
+		remainder = (remainder * i) % number
+	calculator.calculateRemainder(remainder)
 	print("- Thread " + str(name) + " end")
 
 class RemainerCalculator:
@@ -69,14 +58,15 @@ class RemainerCalculator:
 		return self.value
 
 class ThreadManager:
-	def __init__(self, threadInputs, remainderCalculator):
-		self.threadInputs = threadInputs
+	def __init__(self, number, threadInputs, remainderCalculator):
+		self.threadInputs 			 = threadInputs
 		self.remainderCalculator = remainderCalculator
+		self.number 						 = number
 
 	def __run__(self):
 		threads = []
 		for index, input in enumerate(self.threadInputs):
-			thread = threading.Thread(target=threadFunc, name=index, args=(index, self.remainderCalculator, input))
+			thread = threading.Thread(target=threadFunc, name=index, args=(index, self.number, self.remainderCalculator, input))
 			threads.append(thread)
 			thread.start()
 		for thread in threads:
@@ -84,10 +74,44 @@ class ThreadManager:
 
 	def run(self):
 		runningTime = measureRunningTime(self.__run__)
-		print("- RUNNING TIME: %s seconds" % runningTime)
+		print("- THREAD RUNNING TIME: %.6f seconds" % runningTime)
+
+class NaiveCheck:
+	def __init__(self, number):
+		self.number = number
+		self.isPrime = False
+
+	def __run__(self):
+		result = 1
+		for i in range(1, self.number):
+			result = (result * i) % self.number
+		self.isPrime = result == self.number - 1
+
+	def run(self):
+		runningTime = measureRunningTime(self.__run__)
+		print("- NAIVE RUNNING TIME: %.6f seconds" % runningTime)
+		return self.isPrime
+
+class ThreadCheck:
+	def __init__(self, number):
+		self.number = number
+
+	def run(self):
+		if self.number == 1:
+			return False
+
+		threadInputs = splitUp(NUMBER_OF_THREADS, self.number)
+		calculator   = RemainerCalculator(self.number, 1)
+		tm           = ThreadManager(self.number, threadInputs, calculator)
+		tm.run()
+
+		if calculator.remainder() == self.number - 1:
+			return True
+		return False
 
 if __name__ == "__main__":
 	numbers = getNumbersFromFiles()
 	for number in numbers:
 		print("Number: " + str(number))
-		print("- RESULT: " + str(checkPrime(number)))
+		print("- THREAD RESULT: " + str(ThreadCheck(number).run()))
+		print("- NAIVE RESULT: " + str(NaiveCheck(number).run()))
