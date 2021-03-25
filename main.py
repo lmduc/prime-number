@@ -30,7 +30,7 @@ def getNumbersFromFiles():
 	for file in FILES:
 		f = open(file, "r")
 		for line in f.read().splitlines():
-			if line[0] != COMMENT_CHARACTER:
+			if line[0] != COMMENT_CHARACTER and int(line) >= 2 * NUMBER_OF_THREADS:
 				numbers.append(int(line))
 		f.close()
 	return numbers
@@ -44,6 +44,18 @@ def threadFunc(barrier, name, number, calculator, input):
 	print("- Thread " + str(name) + " stop")
 	barrier.wait()
 	print("- Thread " + str(name) + " end")
+
+class ThuyBarrier:
+	def __init__(self, number):
+		self.number = number
+		self.mutex  = threading.Lock()
+
+	def wait(self):
+		self.mutex.acquire()
+		self.number = self.number - 1
+		self.mutex.release()
+		while self.number > 0:
+			time.sleep(0.1)
 
 class RemainerCalculator:
 	def __init__(self, number, value):
@@ -64,7 +76,7 @@ class ThreadManager:
 		self.threadInputs 			 = threadInputs
 		self.remainderCalculator = remainderCalculator
 		self.number 						 = number
-		self.barrier 						 = threading.Barrier(NUMBER_OF_THREADS + 1)
+		self.barrier 						 = ThuyBarrier(NUMBER_OF_THREADS + 1)
 
 	def __run__(self):
 		threads = []
@@ -100,9 +112,6 @@ class ThreadCheck:
 		self.number = number
 
 	def run(self):
-		if self.number == 1:
-			return False
-
 		threadInputs = splitUp(NUMBER_OF_THREADS, self.number)
 		calculator   = RemainerCalculator(self.number, 1)
 		tm           = ThreadManager(self.number, threadInputs, calculator)
