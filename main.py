@@ -9,9 +9,9 @@ FILES = [
 COMMENT_CHARACTER = "#"
 NUMBER_OF_THREADS = 2
 
-def measureRunningTime(func):
+def measureRunningTime(func, *args):
 	startTime = time.time()
-	func()
+	func(*args)
 	return time.time() - startTime
 
 def splitUp(numberOfThreads, number):
@@ -35,12 +35,14 @@ def getNumbersFromFiles():
 		f.close()
 	return numbers
 
-def threadFunc(name, number, calculator, input):
+def threadFunc(barrier, name, number, calculator, input):
 	print("- Thread " + str(name) + " start")
 	remainder = 1
 	for i in range(input[0], input[1] + 1):
 		remainder = (remainder * i) % number
 	calculator.calculateRemainder(remainder)
+	print("- Thread " + str(name) + " stop")
+	barrier.wait()
 	print("- Thread " + str(name) + " end")
 
 class RemainerCalculator:
@@ -62,15 +64,15 @@ class ThreadManager:
 		self.threadInputs 			 = threadInputs
 		self.remainderCalculator = remainderCalculator
 		self.number 						 = number
+		self.barrier 						 = threading.Barrier(NUMBER_OF_THREADS + 1)
 
 	def __run__(self):
 		threads = []
 		for index, input in enumerate(self.threadInputs):
-			thread = threading.Thread(target=threadFunc, name=index, args=(index, self.number, self.remainderCalculator, input))
+			thread = threading.Thread(target=threadFunc, name=index, args=(self.barrier, index, self.number, self.remainderCalculator, input))
 			threads.append(thread)
 			thread.start()
-		for thread in threads:
-			thread.join()
+		self.barrier.wait()
 
 	def run(self):
 		runningTime = measureRunningTime(self.__run__)
