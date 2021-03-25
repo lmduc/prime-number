@@ -76,6 +76,7 @@ class ThreadManager:
 
 	def run(self):
 		runningTime = measureRunningTime(self.__run__)
+		time.sleep(0.1)
 		print("- THREAD RUNNING TIME: %.6f seconds" % runningTime)
 
 class NaiveCheck:
